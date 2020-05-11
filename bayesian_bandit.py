@@ -1,4 +1,14 @@
+"""
+Exploration and Exploitation play a key role in any business.
+And any good business will try to “explore” various opportunities where it can make a profit.
+Any good business at the same time also tries to focus on a particular opportunity it has found already and tries to “exploits” it.
 
+Thought Experiment: Assume that we have infinite slot machines. 
+Every slot machine has some win probability. But we don’t know these probability values.
+
+See below for detailed explanation
+https://towardsdatascience.com/bayesian-bandits-explained-simply-a5b43d9d5e38
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import beta
