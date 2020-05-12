@@ -56,12 +56,12 @@ NC["n"]=baseline["Clicks"]
 NC["sd"]=round(mt.sqrt((NC["p"]*(1-NC["p"]))/NC["n"]),4)
 NC["sd"]
 
-# Get z-score critical value and Standard Deviations
-def get_sds(p,d):
-    sd1=mt.sqrt(2*p*(1-p))
-    sd2=mt.sqrt(p*(1-p)+(p+d)*(1-(p+d)))
-    x=[sd1,sd2]
-    return x
+# # Get z-score critical value and Standard Deviations
+# def get_sds(p,d):
+#     sd1=mt.sqrt(2*p*(1-p))
+#     sd2=mt.sqrt(p*(1-p)+(p+d)*(1-(p+d)))
+#     x=[sd1,sd2]
+#     return x
 
 # Inputs: required alpha value (alpha should already fit the required test)
 # Returns: z-score for given alpha
@@ -148,6 +148,26 @@ Our observed  p^  is inside this range which means the difference in number of s
 
 Number of cookies who clicked the Free Trial Button We are going to address this count with the same strategy as before.
 """
+
+clicks_cont=control['Clicks'].sum()
+clicks_exp=experiment['Clicks'].sum()
+clicks_total=clicks_cont+clicks_exp
+
+p_hat=round(clicks_cont/clicks_total,4)
+sd=mt.sqrt(p*(1-p)/clicks_total)
+ME=round(get_z_score(1-(alpha/2))*sd,4)
+print ("The confidence interval is between",p-ME,"and",p+ME,"; Is",p_hat,"inside this range?")
+
+"""
+We have another pass! Great, so far it still seems all is well with our experiment results. Now, for the final metric which is a probability.
+
+6.2.2 Sanity Checks for differences between probabilities 
+Click-through-probability of the Free Trial Button In this case, we want to make sure the proportion of clicks given a pageview (our observed CTP) is about the same in both groups (since this was not expected to change due to the experiment). In order to check this out we will calculate the CTP in each group and calculate a confidence interval for the expected difference between them.
+In other words, we expect to see no difference ( CTPexp−CTPcont=0 ), with an acceptable margin of error, dictated by our calculated confidence interval. The changes we should notice are for the calculation of the standard error - which in this case is a pooled standard error.
+
+We should understand that CTP is a proportion in a population (amount of events x in a population n) like the amount of clicks out of the amount of pageviews..
+"""
+
 clicks_exp = experiment['Clicks'].sum()
 clicks_total = clicks_cont + clicks_exp
 
