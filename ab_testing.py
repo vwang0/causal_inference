@@ -56,7 +56,7 @@ NC["n"]=baseline["Clicks"]
 NC["sd"]=round(mt.sqrt((NC["p"]*(1-NC["p"]))/NC["n"]),4)
 NC["sd"]
 
-# Get z-score critical value and Standard Deviations 
+# Get z-score critical value and Standard Deviations
 def get_sds(p,d):
     sd1=mt.sqrt(2*p*(1-p))
     sd2=mt.sqrt(p*(1-p)+(p+d)*(1-(p+d)))
@@ -82,7 +82,7 @@ def get_sampSize(sds,alpha,beta,d):
     n=pow((get_z_score(1-alpha/2)*sds[0]+get_z_score(1-beta)*sds[1]),2)/pow(d,2)
     return n
 
-# Calculate Sample Size per Metric 
+# Calculate Sample Size per Metric
 GC["d"]=0.01
 R["d"]=0.01
 NC["d"]=0.0075
@@ -109,10 +109,10 @@ NC["SampSize"]=NC["SampSize"]/baseline['CTP']*2
 print(NC["SampSize"])
 # We are all the way up to 685,325 cookies who view the page. This is more than what was needed for Gross Conversion, so this will be our number. Assuming we take 80% of each days pageviews, the data collection period for this experiment (the period in which the experiment is revealed) will be about 3 weeks.
 
-# Analyzing Collected Data 
+# Analyzing Collected Data
 # Finally, the moment we've all been waiting for, after so much preparation we finally get to see what this experiment will prove! The data is presented as two spreadsheets. I will load each spreadshot into a pandas dataframe.
 
-# Loading collected data 
+# Loading collected data
 # we use pandas to load datasets
 control=pd.read_csv("control_data.csv")
 experiment=pd.read_csv("experiment_data.csv")
@@ -143,10 +143,154 @@ sd=mt.sqrt(p*(1-p)/(pageviews_total))
 ME=round(get_z_score(1-(alpha/2))*sd,4)
 print ("The confidence interval is between",p-ME,"and",p+ME,"; Is",p_hat,"inside this range?")
 
+"""
+Our observed  p^  is inside this range which means the difference in number of samples between groups is expected. So far so good, since this invariant metric sanity test passes!
+
+Number of cookies who clicked the Free Trial Button We are going to address this count with the same strategy as before.
+"""
+clicks_exp = experiment['Clicks'].sum()
+clicks_total = clicks_cont + clicks_exp
+
+p_hat = round(clicks_cont / clicks_total, 4)
+sd = mt.sqrt(p * (1 - p) / clicks_total)
+ME = round(get_z_score(1 - (alpha / 2)) * sd, 4)
+print("The confidence interval is between", p - ME, "and", p + ME, "; Is",
+      p_hat, "inside this range?")
+
+"""
+We have another pass! Great, so far it still seems all is well with our experiment results. Now, for the final metric which is a probability.
+"""
+ctp_cont = clicks_cont / pageviews_cont
+ctp_exp = clicks_exp / pageviews_exp
+d_hat = round(ctp_exp - ctp_cont, 4)
+p_pooled = clicks_total / pageviews_total
+sd_pooled = mt.sqrt(p_pooled * (1 - p_pooled) *
+                    (1 / pageviews_cont + 1 / pageviews_exp))
+ME = round(get_z_score(1 - (alpha / 2)) * sd_pooled, 4)
+print("The confidence interval is between", 0 - ME, "and", 0 + ME, "; Is",
+      d_hat, "within this range?")
+
+"""
+Examining effect size 
+The next step is looking at the changes between the control and experiment groups with regard to our evaluation metrics to make sure the difference is there, that it is statistically significant and most importantly practically significant (the difference is "big" enough to make the experimented change beneficial to the company).
+
+Now, all that is left is to measure for each evaluation metric, the difference between the values from both groups. Then, we compute the confidence interval for that difference and test whether or not this confidence interval is both statistically and practically significant.
+
+Gross Conversion A metric is statistically significant if the confidence interval does not include 0 (that is, you can be confident there was a change), and it is practically significant if the confidence interval does not include the practical significance boundary (that is, you can be confident there is a change that matters to the business.)
+Important: The given spreadsheet lists pageviews and clicks for 39 days, while it only lists enrollments and payments for 23 days. So, when working with enrollments and payments we should notice using only the corresponding pageviews and clicks, and not all of them.
+"""
+# Count the total clicks from complete records only
+clicks_cont = control["Clicks"].loc[control["Enrollments"].notnull()].sum()
+clicks_exp = experiment["Clicks"].loc[
+    experiment["Enrollments"].notnull()].sum()
+
+enrollments_cont = control["Enrollments"].sum()
+enrollments_exp = experiment["Enrollments"].sum()
+
+GC_cont = enrollments_cont / clicks_cont
+GC_exp = enrollments_exp / clicks_exp
+GC_pooled = (enrollments_cont + enrollments_exp) / (clicks_cont + clicks_exp)
+GC_sd_pooled = mt.sqrt(GC_pooled * (1 - GC_pooled) *
+                       (1 / clicks_cont + 1 / clicks_exp))
+GC_ME = round(get_z_score(1 - alpha / 2) * GC_sd_pooled, 4)
+GC_diff = round(GC_exp - GC_cont, 4)
+print("The change due to the experiment is", GC_diff * 100, "%")
+print("Confidence Interval: [", GC_diff - GC_ME, ",", GC_diff + GC_ME, "]")
+print(
+    "The change is statistically significant if the CI doesn't include 0. In that case, it is practically significant if",
+    -GC["d_min"], "is not in the CI as well.")
+
+"""
+According to this result there was a change due to the experiment, that change was both statistically and practically significant. We have a negative change of 2.06%, when we were willing to accept any change greater than 1%. This means the Gross Conversion rate of the experiment group (the one exposed to the change, i.e. asked how many hours they can devote to studying) has decreased as expected by 2% and this change was significant. This means less people enrolled in the Free Trial after due to the pop-up.
+
+Net Conversion The hypothesis is the same as before just with net conversion instead of gross. At this point we expect the fraction of payers (out of the clicks) to decrease as well.
+"""
+
+#Net Conversion - number of payments divided by number of clicks
+payments_cont = control["Payments"].sum()
+payments_exp = experiment["Payments"].sum()
+
+NC_cont = payments_cont / clicks_cont
+NC_exp = payments_exp / clicks_exp
+NC_pooled = (payments_cont + payments_exp) / (clicks_cont + clicks_exp)
+NC_sd_pooled = mt.sqrt(NC_pooled * (1 - NC_pooled) *
+                       (1 / clicks_cont + 1 / clicks_exp))
+NC_ME = round(get_z_score(1 - alpha / 2) * NC_sd_pooled, 4)
+NC_diff = round(NC_exp - NC_cont, 4)
+print("The change due to the experiment is", NC_diff * 100, "%")
+print("Confidence Interval: [", NC_diff - NC_ME, ",", NC_diff + NC_ME, "]")
+print(
+    "The change is statistically significant if the CI doesn't include 0. In that case, it is practically significant if",
+    NC["d_min"], "is not in the CI as well.")
+
+"""
+Double check with Sign Tests 
+In a sign test we get another angle at analyzing the results we got - we check if the trend of change we observed (increase or decrease) was evident in the daily data. We are goint to compute the metric's value per day and then count on how many days the metric was lower in the experiment group and this will be the number of succssesses for our binomial variable. Once this is defined we can look at the proportion of days of success out of all the available days.
+"""
+
+#let's first create the dataset we need for this:
+# start by merging the two datasets
+full = control.join(other=experiment,
+                    how="inner",
+                    lsuffix="_cont",
+                    rsuffix="_exp")
+#Let's look at what we got
+full.count()
+
+#now we only need the complete data records
+full = full.loc[full["Enrollments_cont"].notnull()]
+full.count()
+
+# Perfect! Now, derive a new column for each metric, so we have it's daily values
+# We need a 1 if the experiment value is greater than the control value=
+x = full['Enrollments_cont'] / full['Clicks_cont']
+y = full['Enrollments_exp'] / full['Clicks_exp']
+full['GC'] = np.where(x < y, 1, 0)
+# The same now for net conversion
+z = full['Payments_cont'] / full['Clicks_cont']
+w = full['Payments_exp'] / full['Clicks_exp']
+full['NC'] = np.where(z < w, 1, 0)
+full.head()
+
+GC_x=full.GC[full["GC"]==1].count()
+NC_x=full.NC[full["NC"]==1].count()
+n=full.NC.count()
+print("No. of cases for GC:",GC_x,'\n',
+      "No. of cases for NC:",NC_x,'\n',
+      "No. of total cases",n)
+
+"""
+ Building a Sign Test 
+We can forget all about this part and just use an online sign test calculator, but for me that is just no fun - so I will implement the calculations behind it.
+What we want to do after we count the amount of days in which the experiment group had a higher metric value than that of the control group, is to see if that number is likely to be seen again in a new experiment (significance). We assume the chance of a day like this is random (50% chance to happen) and then use the binomial distribution with  p=0.5  and the number of experiments (days) to tell us the probability of this happening according to a random chance.
+So, according to the binomial distribution with  p=0.5  and  n= total number of days; we want to now the probability of  x  days being a success (higher metric value in experiment). Because we are doing a two-tailed test we want to double this probability and once we have we can call it the  p−value  and compare it to our  α . If the  p−value  is greater than the  α  the result is not significant and vice-versa.
+
+p(successes)=n!x!/(n−x)! * p^x*(1−p)^n−x 
+Recall that a  p−value  is the probability of observing a test statistic as or more extreme than that observed. If we observed 2 days like that, the  p−value  for the test is:  p−value=P(x<=2) . We only need to remember the following:
+P(x<=2)=P(0)+P(1)+P(2) .
+"""
 
 
+#first a function for calculating probability of x=number of successes
+def get_prob(x, n):
+    p = round(
+        mt.factorial(n) / (mt.factorial(x) * mt.factorial(n - x)) * 0.5**x *
+        0.5**(n - x), 4)
+    return p
 
 
+#next a function to compute the pvalue from probabilities of maximum x
+def get_2side_pvalue(x, n):
+    p = 0
+    for i in range(0, x + 1):
+        p = p + get_prob(i, n)
+    return 2 * p
+
+
+print("GC Change is significant if", get_2side_pvalue(GC_x, n),
+      "is smaller than 0.05")
+print("NC Change is significant if", get_2side_pvalue(NC_x, n),
+      "is smaller than 0.05")
 
 
 
