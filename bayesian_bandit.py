@@ -18,7 +18,7 @@ import numpy as np
 from scipy.stats import beta
 
 
-NUM_TRIALS = 2000
+NUM_TRIALS = 20000
 BANDIT_PROBABILITIES = [0.2, 0.5, 0.75]
 
 
@@ -49,10 +49,10 @@ def plot(bandits, trial):
   plt.show()
 
 
-def experiment():
+def experiment(NUM_TRIALS):
   bandits = [Bandit(p) for p in BANDIT_PROBABILITIES]
 
-  sample_points = [5,10,20,50,100,200,500,1000,1500,1999]
+  sample_points = [i*int(NUM_TRIALS/10) for i in range(1,11)]
   for i in range(NUM_TRIALS):
 
     # take a sample from each bandit
@@ -77,4 +77,4 @@ def experiment():
 
 
 if __name__ == "__main__":
-  experiment()
+  experiment(NUM_TRIALS)
