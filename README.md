@@ -1,5 +1,5 @@
-# ab_testing_simulation   
-# Multi-Armed Bandit (MAB)   
+# A/B Testing   
+# Multi-Armed Bandit (MAB) & Reinforcement Learning   
 ## Epsilon Greedy   
 ## Upper Confidence Bound   
 ## Thompson Sampling
